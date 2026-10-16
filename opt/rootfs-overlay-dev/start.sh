@@ -10,6 +10,11 @@
 # briefly for the mount to show up (skipped instantly when the data partition
 # is missing or holds no checkout).
 
+# Board wiring profile baked in by `build.sh --hardware=...` (unset = Waveshare 1.3" hat)
+if [ -f /etc/seedsigner-hardware ]; then
+    export SEEDSIGNER_HARDWARE="$(cat /etc/seedsigner-hardware)"
+fi
+
 DEV_DIR="/mnt/data/seedsigner"
 DEV_SRC="${DEV_DIR}/src"
 
