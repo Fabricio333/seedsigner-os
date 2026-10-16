@@ -8,6 +8,7 @@ cur_dir_name=${PWD##*/}
 cur_dir=$(pwd)
 seedsigner_app_repo="https://github.com/SeedSigner/seedsigner.git"
 seedsigner_app_repo_branch="dev"
+seedsigner_hardware=""
 
 help()
 {
@@ -28,6 +29,8 @@ help()
       --app-repo       Build image with not official seedsigner github repo
       --app-branch     Build image with repo branch other than default
       --app-commit-id  Build image with specific repo commit id
+      --hardware       Board wiring profile baked into the image: waveshare_1.3 (default)
+                       or spotpear_game_1.54 (1.54inch LCD Mini Game Console hat)
       --no-op          All other option ignored and script just hangs to keep container alive"
   exit 2
 }
@@ -141,6 +144,15 @@ download_app_repo() {
   rm -rf ${rootfs_overlay}/opt/src/seedsigner/resources/seedsigner-translations/l10n/**/**/*.po
 }
 
+write_hardware_profile() {
+  # The app reads this (via start.sh -> SEEDSIGNER_HARDWARE) to pick button/LCD pins.
+  # Always rewritten so a previous --hardware build doesn't leak into this one.
+  rm -f ${rootfs_overlay}/etc/seedsigner-hardware
+  if ! [ -z ${seedsigner_hardware} ]; then
+    echo "${seedsigner_hardware}" > ${rootfs_overlay}/etc/seedsigner-hardware
+  fi
+}
+
 build_image() {
   # arguments: $1 - config name, $2 clean/no-clean - allows for, $3 skip-repo
 
@@ -171,6 +183,8 @@ build_image() {
     download_app_repo
   fi
 
+  write_hardware_profile
+
   # Setup external tree
   #make BR2_EXTERNAL="../${config_dir}/" O="${build_dir}" -C ./buildroot/ #2> /dev/null > /dev/null
 
@@ -187,6 +201,10 @@ build_image() {
     seedsigner_os_image_output="${image_dir}/seedsigner_os.${seedsigner_app_repo_commit_id}.${config_name}.img"
   fi
   
+  if ! [ -z ${seedsigner_hardware} ]; then
+    seedsigner_os_image_output="${seedsigner_os_image_output%.img}.${seedsigner_hardware}.img"
+  fi
+
   if [ -f "${build_dir}/images/seedsigner_os.img" ] && [ -d "${image_dir}" ]; then
     mv -f "${build_dir}/images/seedsigner_os.img" "${seedsigner_os_image_output}"
     sha256sum "${seedsigner_os_image_output}"
@@ -247,6 +265,9 @@ while (( "$#" )); do
     ;;
   --app-commit-id=*)
     APP_COMMITID=$(echo "${1}" | cut -d "=" -f2-); shift
+    ;;
+  --hardware=*)
+    HARDWARE=$(echo "${1}" | cut -d "=" -f2-); shift
     ;;
   -*|--*=) # unsupported flags
     echo "Error: Unsupported flag $1" >&2
@@ -313,6 +334,14 @@ fi
 # check for custom app branch
 if ! [ -z ${APP_COMMITID} ]; then
   seedsigner_app_repo_commit_id="${APP_COMMITID}"
+fi
+
+# check for board wiring profile
+if ! [ -z ${HARDWARE} ]; then
+  case "${HARDWARE}" in
+  waveshare_1.3|spotpear_game_1.54) seedsigner_hardware="${HARDWARE}" ;;
+  *) echo "Error: Unsupported hardware ${HARDWARE}" >&2; exit 1 ;;
+  esac
 fi
 
 ###
