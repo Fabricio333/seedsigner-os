@@ -6,9 +6,10 @@ export FORCE_UNSAFE_CONFIGURE=1 # Allows buildroot/tar to run as root user in do
 # global variables
 cur_dir_name=${PWD##*/}
 cur_dir=$(pwd)
-seedsigner_app_repo="https://github.com/SeedSigner/seedsigner.git"
-seedsigner_app_repo_branch="dev"
-seedsigner_hardware=""
+# Defaults for the Spotpear 1.54" game console hat build (override with --app-repo/--app-branch/--hardware)
+seedsigner_app_repo="https://github.com/Fabricio333/seedsigner.git"
+seedsigner_app_repo_branch="spotpear-1.54-game-hat-0.8.7-pi0"
+seedsigner_hardware="spotpear_game_1.54"
 
 help()
 {
